@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Branded World — Service & Repair Tracker (Version BWCSL+++)</title>
+<style>
+  :root{
+    --bg:#0f1115;--card:#161922;--muted:#222636;--soft:#1d2230;
+    --txt:#e7ebf5;--sub:#a9b3c9;--acc:#4f8cff;--good:#29c36a;
+  }
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto;background:var(--bg);color:var(--txt)}
+  header{padding:20px 16px;background:linear-gradient(180deg,rgba(12,14,19,.9),rgba(18,22,34,.6));border-bottom:1px solid #1d2130;position:sticky;top:0;z-index:10}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--sub);font-size:12px;margin-top:4px}
+  main{padding:18px;max-width:1400px;margin:auto}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:10px 16px;background:var(--soft);border:1px solid var(--muted);border-radius:10px;cursor:pointer;color:var(--sub)}
+  .tab.active{background:var(--acc);color:#fff}
+  .hidden{display:none}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .lefttools{display:flex;gap:8px;align-items:center}
+  .righttools{display:flex;gap:8px;align-items:center}
+  .btn{background:var(--soft);border:1px solid var(--muted);border-radius:8px;padding:8px 12px;color:var(--txt);cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,#4f8cff,#3a6fe0);border-color:#4374e6}
+  .input{background:#1a2232;border:1px solid #2a3246;border-radius:8px;color:var(--txt);padding:8px 10px}
+  .card{background:var(--card);border:1px solid var(--muted);border-radius:14px;padding:14px}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px}
+  th{font-size:12px;color:var(--sub);text-align:left;padding:0 8px}
+  td{padding:10px;background:var(--soft);border:1px solid var(--muted)}
+  tr.row-done td{background:rgba(41,195,106,0.12)}
+  .expand-items{background:#1d2230;padding:8px 12px;margin-top:-6px;border-radius:0 0 12px 12px;border:1px solid var(--muted)}
+  .expand-items table{border-spacing:0;width:100%}
+  .expand-items th,.expand-items td{border:none;background:transparent;padding:4px 8px;font-size:13px}
+  .expand-items tr.item-done td{background:rgba(41,195,106,0.15)}
+  .flash{animation:flash .6s ease}
+  @keyframes flash{from{background:#305eff;}to{background:transparent;}}
+  .toast{position:fixed;bottom:10px;right:10px;background:#162232;border:1px solid #26324a;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;z-index:999}
+  .toast.show{opacity:1}
+  .kpi{display:flex;flex-wrap:wrap;gap:12px}
+  .tile{background:var(--soft);border:1px solid var(--muted);border-radius:10px;padding:10px 12px;flex:1;min-width:120px}
+  footer{margin-top:12px;text-align:right;font-size:12px;color:var(--sub)}
+  /* Dropdown */
+  .dropdown{position:relative;display:inline-block}
+  .dropdown-content{display:none;position:absolute;right:0;background:var(--card);border:1px solid var(--muted);border-radius:10px;min-width:220px;z-index:100}
+  .dropdown-content button{display:block;width:100%;background:transparent;border:none;color:var(--txt);text-align:left;padding:10px;border-bottom:1px solid var(--muted);cursor:pointer}
+  .dropdown-content button:last-child{border:none}
+  .dropdown-content button:hover{background:var(--soft)}
+  .dropdown.show .dropdown-content{display:block}
+  /* Modal */
+  dialog{border:none;border-radius:16px;padding:0;background:var(--card);color:var(--txt);max-width:1100px;width:min(1100px,96vw)}
+  dialog::backdrop{background:rgba(7,9,14,.6);backdrop-filter: blur(2px)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--muted)}
+  .modal-body{padding:14px}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+  .col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-2{grid-column:span 2}.col-12{grid-column:span 12}
+  .field label{display:block;font-size:12px;color:var(--sub);margin-bottom:6px}
+  input,select,textarea{background:#1a2232;border:1px solid #2a3246;border-radius:8px;color:var(--txt);padding:8px 10px}
+  .actions{display:flex;gap:8px;justify-content:flex-end;padding:12px;border-top:1px solid var(--muted)}
+  .items{margin-top:10px}
+  .items table{width:100%;border-collapse:separate;border-spacing:0 6px}
+  .items thead th{font-size:12px;color:var(--sub)}
+  .items tbody tr{background:#1b2130;border:1px solid #2a3146}
+  .items tbody td{padding:6px}
+  .note-icon{margin-left:6px}
+  .summary{margin:6px 0 10px 0;color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Branded World — Service & Repair Tracker</h1>
+  <div class="sub">Version BWCSL+++ — Search & filter, return statuses, inline return details, dashboard & data options</div>
+</header>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" id="tab-jobs">Job Cards</div>
+    <div class="tab" id="tab-dashboard">Dashboard</div>
+  </div>
+
+  <section id="jobs-view">
+    <div class="toolbar">
+      <div class="lefttools">
+        <button class="btn primary" id="btn-new">+ New Job Card</button>
+      </div>
+      <div class="righttools">
+        <input id="searchBox" class="input" placeholder="Search: customer / serial / received date" />
+        <button class="btn" id="btn-search">Search 🔍</button>
+        <button class="btn" id="btn-clear">Clear ✖</button>
+        <div class="dropdown" id="dataDropdown">
+          <button class="btn" onclick="toggleDropdown()">⚙️ Data Options ⏷</button>
+          <div class="dropdown-content">
+            <button onclick="exportCSV()">📤 Export CSV</button>
+            <button onclick="backupJSON()">💾 Download Backup (JSON)</button>
+            <button onclick="importFile()">📥 Import (CSV/JSON)</button>
+            <button onclick="clearAll()">🗑️ Clear All Records</button>
+            <input type="file" id="fileInput" accept=".json,.csv" style="display:none" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="filterSummary" class="summary"></div>
+      <table id="jobs-table">
+        <thead>
+          <tr>
+            <th>Job No.</th><th>Customer</th><th>Items</th><th>Centre</th>
+            <th>Warranty</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <footer id="lastSaved">Last Saved On: —</footer>
+    </div>
+  </section>
+
+  <section id="dashboard-view" class="hidden">
+    <div class="card">
+      <h2>Dashboard Summary</h2>
+      <div id="kpi" class="kpi"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal: Add/Edit Job -->
+<dialog id="modal">
+  <form method="dialog" id="form">
+    <div class="modal-head">
+      <div>
+        <div style="font-weight:600" id="modal-title">New Job Card</div>
+        <div class="sub">Fields marked * are required.</div>
+      </div>
+      <button type="button" class="btn" id="x">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid">
+        <div class="field col-3"><label>Job Card No. *</label><input id="f-jobno" required placeholder="e.g., BWC-2025-013"></div>
+        <div class="field col-3"><label>Received Date *</label><input id="f-received" type="date" required></div>
+        <div class="field col-3"><label>Due Date</label><input id="f-due" type="date"></div>
+        <div class="field col-3"><label>Priority</label>
+          <select id="f-priority"><option>Normal</option><option>High</option><option>Urgent</option></select>
+        </div>
+
+        <div class="field col-6"><label>Customer Name *</label><input id="f-customer" required></div>
+        <div class="field col-3"><label>Phone</label><input id="f-phone"></div>
+        <div class="field col-3"><label>Email</label><input id="f-email" type="email"></div>
+
+        <div class="field col-4"><label>Service Centre Name *</label><input id="f-centre" required></div>
+        <div class="field col-4"><label>Warranty Status *</label>
+          <select id="f-warranty" required><option>In Warranty</option><option>Out of Warranty</option></select>
+        </div>
+        <div class="field col-4"><label>Invoice Number</label><input id="f-invoice" placeholder="INV-12345"></div>
+
+        <div class="field col-4"><label>Date of Purchase</label><input id="f-purchase" type="date"></div>
+        <div class="field col-8"><label>Remarks</label><input id="f-remarks" placeholder="Internal notes"></div>
+      </div>
+
+      <div class="items">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px">
+          <div style="font-weight:600">Items</div>
+          <button type="button" class="btn" id="btn-add-item">+ Add Item</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Type *</th><th>Brand</th><th>Model</th><th>Serial *</th>
+              <th style="width:220px">Issue *</th><th>Accessories</th>
+              <th>Centre Quote</th><th>Customer Quote</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="items-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="actions">
+      <button value="cancel" class="btn">Cancel</button>
+      <button id="btn-save" value="default" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast">Saved ✔</div>
+
+<script>
+const LS_KEY='bwcsldata';
+const RETURN_STATUSES=['Repaired and Returned','Returned Unrepaired'];
+const ALL_STATUSES=['Received','In Progress','Sent to Service Centre','Ready for Pickup',...RETURN_STATUSES];
+
+const demo=`[{"job_no":"BWC-1001","received":"2025-11-01","due":"","priority":"Normal","customer":"John Doe","phone":"","email":"","centre":"HP Centre","warranty_status":"In Warranty","invoice_no":"","purchase_date":"","remarks":"","items":[{"item_no":1,"item_type":"Laptop","brand":"HP","model":"840 G5","serial":"SN123","issue":"No power","accessories":"","quote_centre":0,"quote_customer":0,"status":"In Progress"},{"item_no":2,"item_type":"Monitor","brand":"HP","model":"E24","serial":"SN124","issue":"Cracked screen","accessories":"","quote_centre":100,"quote_customer":150,"status":"Repaired and Returned","return_note":"DN-5567","return_date":"2025-11-10"}]}]`;
+
+const jobs=JSON.parse(localStorage.getItem(LS_KEY)||demo);
+let filtered=null; // holds filtered jobs view or null for all
+
+function saveData(){
+  localStorage.setItem(LS_KEY,JSON.stringify(jobs));
+  document.getElementById('lastSaved').textContent="Last Saved On: "+new Date().toLocaleString();
+}
+function toast(msg='Saved ✔'){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
+function toggleDropdown(){document.getElementById('dataDropdown').classList.toggle('show')}
+window.onclick=function(e){if(!e.target.closest('#dataDropdown'))document.getElementById('dataDropdown').classList.remove('show')}
+
+const tBody=document.querySelector('#jobs-table tbody');
+const filterSummary=document.getElementById('filterSummary');
+
+function jobStatusFromItems(items){
+  if(!items||!items.length) return 'Received';
+  const allDone=items.every(it=> RETURN_STATUSES.includes(it.status));
+  return allDone? 'Completed' : 'In Progress';
+}
+function getJobsToRender(){return filtered??jobs}
+function renderJobs(){
+  const data=getJobsToRender();
+  tBody.innerHTML='';
+  data.forEach(j=>{
+    const status=jobStatusFromItems(j.items);
+    j.status=status; // persist
+    const row=document.createElement('tr');
+    if(status==='Completed')row.classList.add('row-done');
+    row.innerHTML=`<td>${escape(j.job_no)}</td><td>${escape(j.customer)}</td><td>${(j.items||[]).length}</td>
+                   <td>${escape(j.centre)}</td><td>${escape(j.warranty_status||'')}</td>
+                   <td>${status}</td><td><button class='btn' onclick='toggleItems(this)'>View Items ▼</button> <button class='btn' onclick='onEdit("${escapeAttr(j.job_no)}")'>Edit</button></td>`;
+    tBody.appendChild(row);
+
+    const expand=document.createElement('tr');
+    const td=document.createElement('td'); td.colSpan=7;
+    td.innerHTML=`<div class='expand-items hidden'>
+      <table>
+        <thead><tr><th>#</th><th>Type</th><th>Brand</th><th>Model</th><th>Serial</th><th>Issue</th><th>Centre Quote</th><th>Customer Quote</th><th>Status</th><th>Return Note/Invoice</th><th>Date of Return</th></tr></thead>
+        <tbody>
+          ${(j.items||[]).map((it,i)=>{
+            const isReturned = RETURN_STATUSES.includes(it.status);
+            const noteIcon = it.return_note? ` <span class='note-icon' title="Note: ${escapeAttr(it.return_note||'')}\nDate: ${escapeAttr(it.return_date||'')}">🧾</span>` : '';
+            return `
+            <tr class='${isReturned?'item-done':''}'>
+              <td>${i+1}</td>
+              <td>${escape(it.item_type||'')}</td>
+              <td>${escape(it.brand||'')}</td>
+              <td>${escape(it.model||'')}</td>
+              <td>${escape(it.serial||'')}</td>
+              <td>${escape(it.issue||'')}</td>
+              <td><input type='number' value='${it.quote_centre??0}' onchange='updateItem("${escapeAttr(j.job_no)}",${i},this,"quote_centre")' /></td>
+              <td><input type='number' value='${it.quote_customer??0}' onchange='updateItem("${escapeAttr(j.job_no)}",${i},this,"quote_customer")' /></td>
+              <td>
+                <select onchange='updateItem("${escapeAttr(j.job_no)}",${i},this,"status")'>
+                  ${ALL_STATUSES.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}
+                </select>${noteIcon}
+              </td>
+              <td>
+                <input type='text' placeholder='DN/INV number' value='${escapeAttr(it.return_note||'')}' onchange='updateItem("${escapeAttr(j.job_no)}",${i},this,"return_note")' ${isReturned?'' : 'disabled'} />
+              </td>
+              <td>
+                <input type='date' value='${escapeAttr(it.return_date||'')}' onchange='updateItem("${escapeAttr(j.job_no)}",${i},this,"return_date")' ${isReturned?'' : 'disabled'} />
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+    expand.appendChild(td);
+    tBody.appendChild(expand);
+  });
+  updateFilterSummary();
+  saveData();
+}
+function toggleItems(btn){
+  const expand=btn.closest('tr').nextElementSibling.querySelector('.expand-items');
+  expand.classList.toggle('hidden');
+  btn.textContent=expand.classList.contains('hidden')?'View Items ▼':'Hide Items ▲';
+}
+function updateItem(jobNo,idx,el,key){
+  const job=jobs.find(x=>x.job_no===jobNo); if(!job) return;
+  if(key==='quote_centre'||key==='quote_customer'){
+    job.items[idx][key]=Number(el.value);
+  } else if(key==='status'){
+    job.items[idx][key]=el.value;
+    const row=el.closest('tr');
+    const isReturned=RETURN_STATUSES.includes(el.value);
+    row.classList.toggle('item-done', isReturned);
+    const noteInput = row.querySelector('input[type="text"]');
+    const dateInput = row.querySelector('input[type="date"]');
+    if(noteInput){ noteInput.disabled = !isReturned; }
+    if(dateInput){ dateInput.disabled = !isReturned; }
+  } else if(key==='return_note' || key==='return_date'){
+    job.items[idx][key]=el.value;
+  }
+  // Update tooltip/icon state
+  const selCell = el.closest('tr').querySelector('td:nth-child(9)');
+  if(selCell){
+    const it = job.items[idx];
+    const icon = selCell.querySelector('.note-icon');
+    if((it.return_note||'').trim()){
+      if(icon){ icon.setAttribute('title',`Note: ${it.return_note||''}\nDate: ${it.return_date||''}`); }
+      else {
+        const span=document.createElement('span'); span.className='note-icon'; span.textContent='🧾'; span.title=`Note: ${it.return_note||''}\nDate: ${it.return_date||''}`; selCell.appendChild(span);
+      }
+    } else if(icon){ icon.remove(); }
+  }
+
+  job.status=jobStatusFromItems(job.items);
+  renderDashboard();
+  el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),600);
+  toast('Saved ✔'); renderJobs();
+}
+
+/* ----- Search / Filter ----- */
+const searchBox=document.getElementById('searchBox');
+document.getElementById('btn-search').addEventListener('click',applyFilter);
+document.getElementById('btn-clear').addEventListener('click',()=>{filtered=null; searchBox.value=''; renderJobs();});
+searchBox.addEventListener('keydown',e=>{ if(e.key==='Enter'){ applyFilter(); }});
+
+function applyFilter(){
+  const q = searchBox.value.trim().toLowerCase();
+  if(!q){ filtered=null; updateFilterSummary(); renderJobs(); return; }
+  const total=jobs.length; let count=0;
+  filtered = jobs.filter(j=>{
+    const inCustomer=(j.customer||'').toLowerCase().includes(q);
+    const inDate=(j.received||'').toLowerCase().includes(q);
+    const inSerial=(j.items||[]).some(it=> (it.serial||'').toLowerCase().includes(q));
+    const match = inCustomer||inDate||inSerial;
+    if(match) count++;
+    return match;
+  });
+  updateFilterSummary(total,count,q);
+  renderJobs();
+}
+function updateFilterSummary(total=jobs.length,count=(filtered?filtered.length:jobs.length),q=searchBox.value.trim()){
+  if(filtered){
+    filterSummary.textContent = `Showing ${count} of ${total} jobs (filtered${q?`: "${q}"`:''})`;
+  } else {
+    filterSummary.textContent = `Showing ${jobs.length} jobs`;
+  }
+}
+
+/* ----- Modal: Add / Edit Job ----- */
+const modal=document.getElementById('modal'); const form=document.getElementById('form'); const itemsBody=document.getElementById('items-body');
+const F=id=>document.getElementById(id);
+
+document.getElementById('btn-new').addEventListener('click',()=>openModal());
+document.getElementById('x').addEventListener('click',()=>modal.close());
+
+function openModal(job){
+  F('modal-title').textContent = job? `Edit Job ${job.job_no}` : 'New Job Card';
+  F('f-jobno').value = job? job.job_no : '';
+  F('f-received').value = job? job.received : new Date().toISOString().slice(0,10);
+  F('f-due').value = job? job.due||'' : '';
+  F('f-priority').value = job? job.priority||'Normal' : 'Normal';
+  F('f-customer').value = job? job.customer||'' : '';
+  F('f-phone').value = job? job.phone||'' : '';
+  F('f-email').value = job? job.email||'' : '';
+  F('f-centre').value = job? job.centre||'' : '';
+  F('f-warranty').value = job? job.warranty_status||'In Warranty' : 'In Warranty';
+  F('f-invoice').value = job? job.invoice_no||'' : '';
+  F('f-purchase').value = job? job.purchase_date||'' : '';
+  F('f-remarks').value = job? job.remarks||'' : '';
+  itemsBody.innerHTML='';
+  const its = job? (job.items||[]) : [];
+  if(its.length){ its.forEach((it,i)=> addItemRow(it,i+1)); } else { addItemRow({},1); }
+  modal.showModal();
+}
+function addItemRow(it={}, idx){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td class="muted">${idx}</td>
+    <td><input data-name="item_type" value="${escapeAttr(it.item_type||'')}" placeholder="Laptop, Printer…" required></td>
+    <td><input data-name="brand" value="${escapeAttr(it.brand||'')}"></td>
+    <td><input data-name="model" value="${escapeAttr(it.model||'')}"></td>
+    <td><input data-name="serial" value="${escapeAttr(it.serial||'')}" required></td>
+    <td><textarea data-name="issue" rows="2" placeholder="Describe issue…" required>${escapeAttr(it.issue||'')}</textarea></td>
+    <td><input data-name="accessories" value="${escapeAttr(it.accessories||'')}"></td>
+    <td><input data-name="quote_centre" type="number" min="0" step="0.01" value="${it.quote_centre??0}"></td>
+    <td><input data-name="quote_customer" type="number" min="0" step="0.01" value="${it.quote_customer??0}"></td>
+    <td>
+      <select data-name="status">
+        ${ALL_STATUSES.map(s=>`<option ${it.status===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </td>
+    <td><button type="button" class="btn" onclick="this.closest('tr').remove(); renumberItems();">Remove</button></td>
+  `;
+  itemsBody.appendChild(tr);
+}
+
+document.getElementById('btn-add-item').addEventListener('click',()=>{ addItemRow({}, itemsBody.querySelectorAll('tr').length+1); });
+function renumberItems(){ Array.from(itemsBody.querySelectorAll('tr')).forEach((tr,i)=>{ tr.firstElementChild.textContent = i+1; }); }
+function gatherItems(){
+  const rows=Array.from(itemsBody.querySelectorAll('tr'));
+  const items=[]; 
+  for(const r of rows){
+    const get = n => r.querySelector(`[data-name="${n}"]`).value;
+    const obj = {
+      item_type:get('item_type').trim(),
+      brand:get('brand').trim(),
+      model:get('model').trim(),
+      serial:get('serial').trim(),
+      issue:get('issue').trim(),
+      accessories:get('accessories').trim(),
+      quote_centre: get('quote_centre')===''?0:Number(get('quote_centre')),
+      quote_customer: get('quote_customer')===''?0:Number(get('quote_customer')),
+      status:get('status')
+    };
+    if(!obj.item_type || !obj.serial || !obj.issue){
+      r.scrollIntoView({behavior:'smooth',block:'center'}); toast('Each item needs Type, Serial & Issue'); return null;
+    }
+    items.push(obj);
+  }
+  return items.map((it,i)=>({...it, item_no:i+1}));
+}
+function gatherJob(){
+  const require = ['f-jobno','f-received','f-customer','f-centre','f-warranty'];
+  for(const id of require){ if(!F(id).value.trim()){ F(id).focus(); toast('Please fill all required fields.'); return null; } }
+  const items=gatherItems(); if(!items) return null;
+  return {
+    job_no:F('f-jobno').value.trim(),
+    received:F('f-received').value,
+    due:F('f-due').value,
+    priority:F('f-priority').value,
+    customer:F('f-customer').value.trim(),
+    phone:F('f-phone').value.trim(),
+    email:F('f-email').value.trim(),
+    centre:F('f-centre').value.trim(),
+    warranty_status:F('f-warranty').value,
+    invoice_no:F('f-invoice').value.trim(),
+    purchase_date:F('f-purchase').value,
+    remarks:F('f-remarks').value.trim(),
+    items
+  };
+}
+document.getElementById('btn-save').addEventListener('click',(e)=>{
+  e.preventDefault();
+  const job=gatherJob(); if(!job) return;
+  const i=jobs.findIndex(x=>x.job_no===job.job_no);
+  if(i>=0) jobs[i]={...jobs[i], ...job}; else jobs.push(job);
+  toast(i>=0?'Updated ✔':'Saved ✔'); saveData(); modal.close(); renderJobs(); renderDashboard();
+});
+window.onEdit=function(job_no){ const job=jobs.find(x=>x.job_no===job_no); openModal(job); };
+
+/* ----- Export / Import / Clear ----- */
+function exportCSV(){
+  const rows=[];
+  jobs.forEach(j=>{
+    (j.items||[]).forEach((it,i)=>{
+      rows.push([
+        j.job_no,i+1, it.item_type||'', it.brand||'', it.model||'', it.serial||'',
+        (it.issue||'').replace(/\n/g,' '), it.quote_centre??0, it.quote_customer??0, it.status||'', it.return_note||'', it.return_date||''
+      ]);
+    });
+  });
+  const header='JobNo,ItemNo,Type,Brand,Model,Serial,Issue,CentreQuote,CustomerQuote,Status,ReturnNote,ReturnDate';
+  const csv=[header, ...rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\r\n');
+  download('service-tracker.csv',csv,'text/csv'); toast('Exported CSV ✔');
+}
+function backupJSON(){ download('service-tracker.json',JSON.stringify(jobs,null,2),'application/json'); toast('Backup Downloaded ✔'); }
+function download(name,content,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
+function importFile(){ document.getElementById('fileInput').click(); }
+document.getElementById('fileInput').addEventListener('change',function(){
+  const f=this.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{
+    try{
+      if(f.name.endsWith('.json')){
+        const data=JSON.parse(r.result); if(!Array.isArray(data)) throw new Error('Invalid JSON');
+        jobs.length=0; jobs.push(...data); toast('Imported JSON ✔'); saveData(); filtered=null; searchBox.value=''; renderJobs(); renderDashboard();
+      } else if(f.name.endsWith('.csv')){
+        const lines=r.result.split(/\r?\n/).filter(Boolean); lines.shift();
+        const map=new Map();
+        for(const ln of lines){
+          const cols=parseCSVLine(ln);
+          const job=cols[0]; if(!map.has(job)) map.set(job,{job_no:job,received:'',due:'',priority:'Normal',customer:'Imported',phone:'',email:'',centre:'',warranty_status:'',invoice_no:'',purchase_date:'',remarks:'',items:[]});
+          map.get(job).items.push({
+            item_no:Number(cols[1]||map.get(job).items.length+1), item_type:cols[2]||'', brand:cols[3]||'', model:cols[4]||'', serial:cols[5]||'',
+            issue:cols[6]||'', quote_centre:Number(cols[7]||0), quote_customer:Number(cols[8]||0), status:cols[9]||'Received', return_note:cols[10]||'', return_date:cols[11]||''
+          });
+        }
+        jobs.length=0; jobs.push(...Array.from(map.values())); toast('Imported CSV ✔'); saveData(); filtered=null; searchBox.value=''; renderJobs(); renderDashboard();
+      } else { toast('Unsupported file'); }
+    } catch(err){ console.error(err); toast('Import failed'); }
+  };
+  r.readAsText(f); this.value='';
+});
+function parseCSVLine(str){
+  const out=[]; let i=0,cur='',inQ=false;
+  while(i<str.length){ const ch=str[i++]; if(inQ){ if(ch==='"'){ if(str[i]==='"'){cur+='"'; i++;} else inQ=false; } else cur+=ch; } else { if(ch===','){ out.push(cur); cur=''; } else if(ch==='"'){ inQ=true; } else cur+=ch; } }
+  out.push(cur); return out;
+}
+function clearAll(){ if(confirm('Delete all records?')){ jobs.length=0; saveData(); filtered=null; searchBox.value=''; renderJobs(); renderDashboard(); toast('Cleared ✔'); } }
+
+/* ----- Dashboard ----- */
+function renderDashboard(){
+  const kpi=document.getElementById('kpi');
+  const items=jobs.flatMap(j=>j.items||[]);
+  const totalJobs=jobs.length, totalItems=items.length;
+  const done=items.filter(it=> RETURN_STATUSES.includes(it.status)).length;
+  const totalCentre=items.reduce((a,b)=>a+(Number(b.quote_centre)||0),0);
+  const totalCustomer=items.reduce((a,b)=>a+(Number(b.quote_customer)||0),0);
+  const margin=totalCustomer-totalCentre;
+  kpi.innerHTML=`
+    <div class='tile'>Total Jobs <b>${totalJobs}</b></div>
+    <div class='tile'>Total Items <b>${totalItems}</b></div>
+    <div class='tile'>Completed Items <b>${done}</b></div>
+    <div class='tile'>Centre Quote <b>${totalCentre.toLocaleString()}</b></div>
+    <div class='tile'>Customer Quote <b>${totalCustomer.toLocaleString()}</b></div>
+    <div class='tile'>Margin <b>${margin.toLocaleString()}</b></div>`;
+}
+
+/* ----- Tab switch ----- */
+const tabJobs=document.getElementById('tab-jobs');
+const tabDash=document.getElementById('tab-dashboard');
+const jobsView=document.getElementById('jobs-view');
+const dashView=document.getElementById('dashboard-view');
+function switchTab(tab){
+  const isDash=tab==='dash';
+  tabJobs.classList.toggle('active',!isDash);
+  tabDash.classList.toggle('active',isDash);
+  jobsView.classList.toggle('hidden',isDash);
+  dashView.classList.toggle('hidden',!isDash);
+  if(isDash) renderDashboard();
+}
+
+tabJobs.onclick=()=>switchTab('jobs');
+tabDash.onclick=()=>switchTab('dash');
+
+/* ----- Utils ----- */
+function escape(s){return String(s||'').replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]));}
+function escapeAttr(s){return String(s||'').replace(/["'<>]/g, m=>({ '"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;' }[m]));}
+
+/* Init */
+renderJobs(); renderDashboard(); document.getElementById('lastSaved').textContent="Last Saved On: "+new Date().toLocaleString();
+</script>
+</body>
+</html>
